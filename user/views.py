@@ -12,6 +12,7 @@ from user.serializers import UserSerializer, AuthTokenSerializer
 class CreateUserView(generics.CreateAPIView):
     """Create a new user in the system."""
     serializer_class = UserSerializer
+    permission_classes = [permissions.AllowAny]
 
 class CreateTokenView(ObtainAuthToken):
     """Create a new token for user."""

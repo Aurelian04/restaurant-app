@@ -2,9 +2,20 @@
 Testt for Menu.
 """
 
+from django.urls import reverse
+from rest_framework.test import APIClient
+from rest_framework import status
 from django.test import TestCase
 from core.models import MenuItem
+from django.core.exceptions import ValidationError
+from django.contrib.auth import get_user_model
+from decimal import Decimal
 
+CREATE_MENU_URL = reverse('menu:create')
+
+
+def create_user(**params):
+    return get_user_model().objects.create_user(**params)
 
 class MenuModelTests(TestCase):
     """Test for menu item model."""
@@ -22,3 +33,79 @@ class MenuModelTests(TestCase):
         self.assertEqual(str(item), item.name)
         self.assertEqual(item.price, 25.00)
         self.assertTrue(item.available)
+
+    def test_menu_item_without_name_raises_error(self):
+        """Test model validation raises error when name is missing."""
+        item = MenuItem(price=25.0)
+        with self.assertRaises(ValidationError):
+            item.full_clean() 
+
+class PrivateMenuApiTests(TestCase):
+    """Tests for staff API related to menu items."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = create_user(
+            email="test@example.com", 
+            password="testpass123", 
+            is_staff=True
+        )
+        self.client.force_authenticate(user=self.user)
+
+    def test_create_menu_item(self):
+        """Test that staff user can create a menu item successfully."""
+        payload = {
+            'name': 'Pizza Margherita',
+            'price': '30.0',
+            'description': 'Classic Italian pizza with mozzarella and basil.',
+            'category': 'main',
+        }
+
+        res = self.client.post(CREATE_MENU_URL, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+
+        item_exists = MenuItem.objects.filter(
+            name=payload['name'],
+            price=payload['price'],
+            category=payload['category']
+        ).exists()
+
+        self.assertTrue(item_exists)
+
+    def test_create_item_without_name(self):
+        """Test create an item without a name."""
+        payload = {
+            'name': '',
+            'price': '30.0',
+            'description': 'Classic Italian pizza with mozzarella and basil.',
+            'category': 'main',
+        }
+        res = self.client.post(CREATE_MENU_URL, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_menu_item_unauthorized(self):
+        """Test that authentication is required to create manu item. """
+        client = APIClient()
+        payload = {'name': 'Pizza', 'price': '25.00', 'category': 'Main'}
+        res = client.post(CREATE_MENU_URL, payload)
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_update_menu_item(self):
+        """Test that a staff user can update a menu item."""
+        item = MenuItem.objects.create(
+            name="Pizza Margherita",
+            price="30.00",
+            description="Classic pizza",
+            category="pizza"
+        )
+
+        payload = {"price": "35.00", "description": "Updated description"}
+        url = reverse("menu:update", args=[item.id])
+        res = self.client.patch(url, payload)
+
+        item.refresh_from_db()
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(item.price, Decimal(payload["price"]))
+        self.assertEqual(item.description, payload["description"])
