@@ -34,7 +34,8 @@ urlpatterns = [
 
     path("admin/", admin.site.urls),
     path("api/user/", include("user.urls", namespace="user")),
-    path("api/menu/", include("menu.urls", namespace="menu") ),
+    path("api/menu/", include("menu.urls", namespace="menu")),
+    path("api/order/", include("order.urls", namespace="order")),
 ]
 
 if settings.DEBUG:

@@ -5,6 +5,7 @@ from menu import views
 app_name = 'menu'
 
 urlpatterns = [
-    path('', views.MenuView.as_view(), name='create'),
-    path("update/<int:pk>/", views.UpdateMenuItemView.as_view(), name='update'),
+    path("create", views.MenuView.as_view(), name='create-item'),
+    path("update/<int:pk>/", views.UpdateMenuItemView.as_view(), name='update-item'),
+    path("", views.PublicMenuView.as_view(), name="public-menu"),
 ]

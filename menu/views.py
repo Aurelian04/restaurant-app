@@ -18,3 +18,10 @@ class MenuView(BaseMenuItemView, generics.CreateAPIView):
 class UpdateMenuItemView(BaseMenuItemView, generics.UpdateAPIView):
     """Update a menu item (staff only)."""
     pass
+
+class PublicMenuView(generics.ListAPIView):
+    """Public view to list all menu list for everyone."""
+    queryset = MenuItem.objects.all()
+    serializer_class = MenuItemSerializer
+    authentication_classes = []
+    permission_classes = []

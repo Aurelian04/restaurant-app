@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     "core",
     "user",
     "menu",
+    "odrer",
 ]
 
 REST_FRAMEWORK = {

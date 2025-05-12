@@ -11,7 +11,8 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
 from decimal import Decimal
 
-CREATE_MENU_URL = reverse('menu:create')
+CREATE_MENU_URL = reverse('menu:create-item')
+GET_MENU = reverse('menu:public-menu')
 
 
 def create_user(**params):
@@ -102,10 +103,40 @@ class PrivateMenuApiTests(TestCase):
         )
 
         payload = {"price": "35.00", "description": "Updated description"}
-        url = reverse("menu:update", args=[item.id])
+        url = reverse("menu:update-item", args=[item.id])
         res = self.client.patch(url, payload)
 
         item.refresh_from_db()
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(item.price, Decimal(payload["price"]))
         self.assertEqual(item.description, payload["description"])
+
+class PublicMenuApiTests(TestCase):
+    """Testes for public api menu."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = create_user(
+            email="test@example.com", 
+            password="testpass123",
+        )
+
+    def test_get_menu_works(self):
+        """Test get the menu list works."""
+        MenuItem.objects.create(name="Pizza", price=25.5, category="main")
+        MenuItem.objects.create(name="Tocinei", price=15.0, category="dessert")
+
+        res = self.client.get(GET_MENU)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(res.data), 2)
+
+        item_names = [item["name"] for item in res.data]
+        self.assertIn("Pizza", item_names)
+        self.assertIn("Tocinei", item_names)
+    
+    def test_get_menu_works(self):
+        url = reverse('menu:public-menu')
+        res = self.client.get(url)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
