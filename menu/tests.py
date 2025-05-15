@@ -6,13 +6,14 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 from rest_framework import status
 from django.test import TestCase
-from core.models import MenuItem
+from core.models import MenuItem, User, Order, OrderItem
 from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
 from decimal import Decimal
 
 CREATE_MENU_URL = reverse('menu:create-item')
 GET_MENU = reverse('menu:public-menu')
+
 
 
 def create_user(**params):
@@ -140,3 +141,57 @@ class PublicMenuApiTests(TestCase):
         res = self.client.get(url)
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+
+class OrderApiTests(TestCase):
+    """Tests for the Order API."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = create_user(email='test@example.com', password='testpass123')
+        self.client.force_authenticate(user=self.user)
+
+        # Creăm două produse în meniu
+        self.item1 = MenuItem.objects.create(
+            name='Pizza',
+            description='Delicious pizza',
+            price=Decimal('25.00'),
+            category='main',
+            available=True
+        )
+        self.item2 = MenuItem.objects.create(
+            name='Cola',
+            description='Cold drink',
+            price=Decimal('5.00'),
+            category='drink',
+            available=True
+        )
+
+        # Corect: reverse este apelat în setUp, după ce URL-urile au fost încărcate
+        self.create_order_url = reverse('order:create-order')
+
+    def test_create_order_successful(self):
+        """Test that a user can successfully place an order."""
+        payload = {
+            "items": [
+                {"menu_item": self.item1.id, "quantity": 2},  # 2 x Pizza = 50.00
+                {"menu_item": self.item2.id, "quantity": 3}   # 3 x Cola = 15.00
+            ]
+        }
+
+        res = self.client.post(self.create_order_url, payload, format='json')
+
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+
+        # Verificăm că s-a creat comanda și produsele din comandă
+        order = Order.objects.get(id=res.data['id'])
+        self.assertEqual(order.user, self.user)
+        self.assertEqual(order.total_price, Decimal('65.00'))  # 50 + 15
+
+        order_items = order.items.all()
+        self.assertEqual(order_items.count(), 2)
+
+        # Verificăm că produsele și cantitățile sunt corecte
+        item_quantities = {item.menu_item.name: item.quantity for item in order_items}
+        self.assertEqual(item_quantities['Pizza'], 2)
+        self.assertEqual(item_quantities['Cola'], 3)
