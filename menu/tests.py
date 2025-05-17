@@ -168,7 +168,7 @@ class OrderApiTests(TestCase):
         )
 
         # Corect: reverse este apelat în setUp, după ce URL-urile au fost încărcate
-        self.create_order_url = reverse('order:create-order')
+        self.create_order_url = reverse('order:order-list')
 
     def test_create_order_successful(self):
         """Test that a user can successfully place an order."""
@@ -195,3 +195,23 @@ class OrderApiTests(TestCase):
         item_quantities = {item.menu_item.name: item.quantity for item in order_items}
         self.assertEqual(item_quantities['Pizza'], 2)
         self.assertEqual(item_quantities['Cola'], 3)
+
+    def test_update_order_status_success(self):
+        """Test is user can refresh order status."""
+        order = Order.objects.create(user=self.user, total_price=100.0)
+        url = reverse('order:order-detail', args=[order.id])
+
+        res = self.client.patch(url, {"status": "preparing"}, format='json')
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        order.refresh_from_db()
+        self.assertEqual(order.status, "preparing")
+
+    def test_non_staff_cannot_mark_order_delivered(self):
+        "Test non-staff user cannot set order status."
+        order = Order.objects.create(user=self.user, total_price=100.0)
+        url = reverse('order:order-detail', args=[order.id])
+
+        res = self.client.patch(url, {"status": "delivered"}, format='json')
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)

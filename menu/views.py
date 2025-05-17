@@ -21,7 +21,9 @@ class UpdateMenuItemView(BaseMenuItemView, generics.UpdateAPIView):
 
 class PublicMenuView(generics.ListAPIView):
     """Public view to list all menu list for everyone."""
-    queryset = MenuItem.objects.all()
     serializer_class = MenuItemSerializer
     authentication_classes = []
     permission_classes = []
+
+    def get_queryset(self):
+        return MenuItem.objects.filter(available=True).order_by('name')  # Sau 'id', 'price', etc.

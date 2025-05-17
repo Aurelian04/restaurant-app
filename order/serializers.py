@@ -15,7 +15,15 @@ class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = ['id', 'items', 'status', 'created_at', 'total_price']
-        read_only_fields = ['id', 'status', 'created_at', 'total_price']
+        read_only_fields = ['id', 'created_at', 'total_price']
+
+
+    def validate_status(self, value):
+        request = self.context.get('request')
+        # Dacă utilizatorul încearcă să seteze statusul pe 'delivered' și NU e staff, blocăm.
+        if value == 'delivered' and not request.user.is_staff:
+            raise serializers.ValidationError("Doar staff-ul poate marca o comandă ca livrată.")
+        return value
 
     def create(self, validated_data):
         items_data = validated_data.pop('items')
