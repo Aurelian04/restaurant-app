@@ -13,6 +13,12 @@ DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
 # Hosturi permise (ex: localhost, 127.0.0.1, etc.)
 ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "*").split(",")
 
+
+# CORS Settings
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+]
+
 # Aplicații Django + DRF + aplicația ta
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -28,6 +34,7 @@ INSTALLED_APPS = [
     "user",
     "menu",
     "order",
+    "corsheaders",
 ]
 
 REST_FRAMEWORK = {
@@ -48,6 +55,7 @@ AUTH_USER_MODEL = 'core.User'
 
 # Middleware
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
